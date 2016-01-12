@@ -1,0 +1,8 @@
+[package]
+name = "open_depacker"
+version = "0.1.0"
+authors = ["Daniel Collin <daniel@collin.com>"]
+
+[dependencies.clap]
+version = "1"
+features = [ "suggestions", "color" ]
