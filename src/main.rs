@@ -5,7 +5,7 @@ fn main() {
     let matches = clap_app!(open_depacker =>
         (version: "0.1")
         (author: "Daniel Collin. <daniel@collin.com>")
-        (about: "Generic data depacter")
+        (about: "Generic data depacker")
         (@arg input: +required "Sets the input file to use")
         (@arg debug: -d ... "Sets the level of debugging information")
     ).get_matches();
