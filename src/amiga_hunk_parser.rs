@@ -90,23 +90,75 @@ const EXT_ABSREF8:u32 = 139; //8 bit absolute reference to symbol
 
 */
 
-pub struct AmigaHunkParser;
+pub struct HunkParser;
 
-impl AmigaHunkParser {
+
+/// Hunk types supported by the Amiga Hunk format (68x0)
+/*
+enum HunkType {
+    Unit,
+    Name,
+    Code,
+    Data,
+    Bss,
+    Reloc32,
+    Absreloc32,
+    Reloc16,
+    Relreloc16,
+    Reloc8,
+    Relreloc8,
+    Ext,
+    Symbol,
+    Debug,
+    End,
+
+    Overlay,
+    Break,
+
+    Drel32,
+    Drel16,
+    Drel8,
+
+    Lib,
+    Index,
+
+    Reloc32Short,
+    RelReloc32,
+    AbsReloc16,
+}
+*/
+
+
+//struct Hunk {
+//
+//}
+
+impl HunkParser {
     pub fn parse_file(filename: &str) -> io::Result<()> {
-        let mut index = 0;
+        //let mut index = 0;
 
         let mut file = try!(File::open(filename));
 
         let hunk_header = try!(file.read_u32::<BigEndian>());
         if hunk_header != HUNK_HEADER  {
-            println!("Unable to find correct HUNK_HEADER in {} found {} but expected {}", filename, HUNK_HEADER, hunk_header);
-            return Err(Error::new(ErrorKind::Other, "oh no!"));
+            return Err(Error::new(ErrorKind::Other, "Unable to find correct HUNK_HEADER"));
         };
 
+        // Skip header/string section
         while try!(file.read_u32::<BigEndian>()) != 0 {
-
         }
+
+        let table_size = try!(file.read_u32::<BigEndian>()) as i32;
+        let first_hunk = try!(file.read_u32::<BigEndian>()) as i32;
+        let last_hunk = try!(file.read_u32::<BigEndian>()) as i32;
+
+        if table_size < 0 || first_hunk < 0 || last_hunk < 0 {
+            return Err(Error::new(ErrorKind::Other, "Invalid sizes for hunks"));
+        }
+
+        let num_hunks = last_hunk - first_hunk + 1;
+
+        println!("hunks in file {}", num_hunks);
 
         //println!("b {}", hunk_header);
         Ok(())

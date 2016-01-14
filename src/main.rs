@@ -3,7 +3,7 @@ extern crate clap;
 extern crate byteorder;
 
 pub mod amiga_hunk_parser;
-use amiga_hunk_parser::AmigaHunkParser;
+use amiga_hunk_parser::HunkParser;
 
 fn main() {
     let matches = clap_app!(open_depacker =>
@@ -23,6 +23,6 @@ fn main() {
 
     if let Some(ref file) = matches.value_of("input") {
         println!("Using config file: {}", file);
-        let _ = AmigaHunkParser::parse_file(file);
+        let _ = HunkParser::parse_file(file);
     }
 }
