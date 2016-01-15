@@ -23,6 +23,6 @@ fn main() {
 
     if let Some(ref file) = matches.value_of("input") {
         println!("Using config file: {}", file);
-        let _ = HunkParser::parse_file(file);
+        HunkParser::parse_file(file).unwrap();
     }
 }
