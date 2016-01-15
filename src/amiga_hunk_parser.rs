@@ -17,22 +17,22 @@ const HUNK_SYMBOL: u32 = 1008;
 const HUNK_END: u32 = 1010;
 
 /*
-const HUNK_ABSRELOC32: u32 = HUNK_RELOC32;
-const HUNK_RELOC16: u32 = 1005;
-const HUNK_RELRELOC16 :u32 = HUNK_RELOC16;
-const HUNK_RELOC8: u32 = 1006;
-const HUNK_RELRELOC8: u32 = HUNK_RELOC8;
+   const HUNK_ABSRELOC32: u32 = HUNK_RELOC32;
+   const HUNK_RELOC16: u32 = 1005;
+   const HUNK_RELRELOC16 :u32 = HUNK_RELOC16;
+   const HUNK_RELOC8: u32 = 1006;
+   const HUNK_RELRELOC8: u32 = HUNK_RELOC8;
 
-const HUNK_OVERLAY: u32 = 1013;
-const HUNK_BREAK: u32 = 1014;
+   const HUNK_OVERLAY: u32 = 1013;
+   const HUNK_BREAK: u32 = 1014;
 
-const HUNK_DREL32: u32 = 1015;
-const HUNK_DREL16: u32 = 1016;
-const HUNK_DREL8: u32 = 1017;
+   const HUNK_DREL32: u32 = 1015;
+   const HUNK_DREL16: u32 = 1016;
+   const HUNK_DREL8: u32 = 1017;
 
-const HUNK_LIB: u32 = 1018;
-const HUNK_INDEX: u32 = 1019;
-*/
+   const HUNK_LIB: u32 = 1018;
+   const HUNK_INDEX: u32 = 1019;
+   */
 
 /*
 //
@@ -270,15 +270,14 @@ impl HunkParser {
         for i in 0..hunk_count {
             let mut hunk = Hunk {
                 mem_type: hunk_table[i].mem_type, 
-                hunk_type: HunkType::Bss,
-                alloc_size: hunk_table[i].size as usize,
-                data_size: 0,
-                code_data: None, 
-                reloc_32: None, 
+                    hunk_type: HunkType::Bss,
+                    alloc_size: hunk_table[i].size as usize,
+                    data_size: 0,
+                    code_data: None, 
+                    reloc_32: None, 
             };
 
             try!(Self::fill_hunk(&mut hunk, &mut file));
-
 
             hunks.push(hunk);
         }
