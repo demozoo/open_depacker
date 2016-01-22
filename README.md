@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.org/emoon/open_depacker.svg)](https://travis-ci.org/emoon/open_depacker)
-[![Build status](https://ci.appveyor.com/api/projects/status/3l0nevvylstr9avq?svg=true)](https://ci.appveyor.com/project/emoon/open_depacker)
+[comment]: <> [![Build Status](https://travis-ci.org/emoon/open_depacker.svg)](https://travis-ci.org/emoon/open_depacker)
+[comment]: <> [![Build status](https://ci.appveyor.com/api/projects/status/3l0nevvylstr9avq?svg=true)](https://ci.appveyor.com/project/emoon/open_depacker)
 
 OpenDepacker
 ------------
