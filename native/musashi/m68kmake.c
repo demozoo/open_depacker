@@ -646,10 +646,10 @@ int get_oper_cycles(opcode_struct* op, int ea_mode, int cpu_type)
 /* Find an opcode in the opcode handler list */
 opcode_struct* find_opcode(char* name, int size, char* spec_proc, char* spec_ea)
 {
-	opcode_struct* op;
+	opcode_struct* op = g_opcode_input_table;
 
-
-	for(op = g_opcode_input_table;op->name != NULL;op++)
+	//for(op = g_opcode_input_table;op->name != NULL;op++)
+	for(;;op++)
 	{
 		if(	strcmp(name, op->name) == 0 &&
 			(size == op->size) &&
@@ -663,9 +663,10 @@ opcode_struct* find_opcode(char* name, int size, char* spec_proc, char* spec_ea)
 /* Specifically find the illegal opcode in the list */
 opcode_struct* find_illegal_opcode(void)
 {
-	opcode_struct* op;
+	opcode_struct* op = g_opcode_input_table;
 
-	for(op = g_opcode_input_table;op->name != NULL;op++)
+	//for(op = g_opcode_input_table;op->name != NULL;op++)
+	for(;;op++)
 	{
 		if(strcmp(op->name, "illegal") == 0)
 			return op;

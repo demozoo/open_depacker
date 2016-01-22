@@ -127,7 +127,7 @@ struct SizesTypes {
 }
 
 impl HunkParser {
-    fn skip_hunk(file: &mut File, name: &str) -> io::Result<()> {
+    fn skip_hunk(file: &mut File, name: &'static str) -> io::Result<()> {
         println!("Skipping {}\n", name);
         let seek_offset = try!(file.read_u32::<BigEndian>());
         file.seek(io::SeekFrom::Current(seek_offset as i64)).map(|_|())
