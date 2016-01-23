@@ -47,6 +47,17 @@ local macosx = {
 
 -----------------------------------------------------------------------------------------------------------------------
 
+local nix = {
+    Env = {
+        CCOPTS = { gcc_opts },
+        CXXOPTS = { gcc_opts },
+		M68KMAKE = "$(OBJECTDIR)$(SEP)m68kmake$(PROGSUFFIX)",
+		M68KEMUPATH = "native/musashi",
+    },
+}
+
+-----------------------------------------------------------------------------------------------------------------------
+
 local win64 = {
     Env = {
         GENERATE_PDB = "1",
@@ -72,7 +83,7 @@ Build {
     Configs = {
         Config { Name = "macosx-clang", DefaultOnHost = "macosx", Inherit = macosx, Tools = { "clang-osx", "rust" } },
         Config { Name = "win64-msvc", DefaultOnHost = { "windows" }, Inherit = win64, Tools = { "msvc", "rust" } },
-        Config { Name = "linux-gcc", DefaultOnHost = { "linux" }, Inherit = gcc_opts, Tools = { "gcc", "rust" } },
+        Config { Name = "nix-gcc", DefaultOnHost = { "linux" }, Inherit = nix, Tools = { "gcc", "rust" } },
     },
 }
 
