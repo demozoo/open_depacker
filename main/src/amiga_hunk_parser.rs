@@ -93,8 +93,8 @@ const HUNKF_FAST: u32 = 1 << 31;
 pub struct HunkParser;
 
 
-#[derive(Clone, Copy, Debug)]
-enum HunkType {
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum HunkType {
     Code,
     Data,
     Bss,
@@ -106,16 +106,16 @@ pub struct RelocInfo32 {
 }
 
 pub struct Hunk {
-    mem_type: MemoryType,
-    hunk_type: HunkType,
-    alloc_size: usize,
-    data_size: usize,
-    code_data: Option<Vec<u8>>, 
-    reloc_32: Option<Vec<RelocInfo32>>,
+    pub mem_type: MemoryType,
+    pub hunk_type: HunkType,
+    pub alloc_size: usize,
+    pub data_size: usize,
+    pub code_data: Option<Vec<u8>>, 
+    pub reloc_32: Option<Vec<RelocInfo32>>,
 }
 
 #[derive(Clone, Copy, Debug)]
-enum MemoryType {
+pub enum MemoryType {
     Any,
     Chip,
     Fast,
@@ -232,7 +232,7 @@ impl HunkParser {
         }
     }
 
-    pub fn parse_file(filename: &str) -> io::Result<()> {
+    pub fn parse_file(filename: &str) -> Result<Vec<Hunk>, io::Error> {
         //let mut index = 0;
 
         let mut file = try!(File::open(filename));
@@ -284,11 +284,11 @@ impl HunkParser {
 
         // dump info
 
-        for hunk in hunks {
-            println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size); 
-        }
+        //for hunk in hunks {
+        //   println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size); 
+        //}
 
         //println!("b {}", hunk_header);
-        Ok(())
+        Ok(hunks)
     }
 }

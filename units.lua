@@ -7,6 +7,16 @@ local function get_src(dir, recursive)
 	}
 end
 
+-----------------------------------------------------------------------------------------------------------------------
+
+local function get_rs_src(dir)
+	return Glob {
+		Dir = dir,
+		Extensions = { ".rs" },
+		Recursive = true,
+	}
+end
+
 ------------------------ 68k emulation stuff ------------------------
 
 DefRule {
@@ -41,13 +51,14 @@ StaticLibrary {
         { CCOPTS = { "-Wno-unused-parameter"  } ; Config = "mac*-*-*" },
 
 		CPPPATH = { 
-			"$(M68KEMUPATH)",
+			"native/musashi",
 			"$(OBJECTDIR)/_generated",
 		},
 	},
 	
 	Sources = {
-		get_src("$(M68KEMUPATH)", true),
+		"native/musashi/m68kcpu.c",
+		"native/musashi/m68kdasm.c",
 
 		m68kmake {
 			TargetDir = "$(OBJECTDIR)/_generated",
@@ -69,7 +80,11 @@ Program {
 RustProgram {
 	Name = "open_depacker",
 	CargoConfig = "main/Cargo.toml",
-	Sources = { Glob { Dir = "main", Extensions = { ".rs" }, true } },
+	Sources = { 
+		get_rs_src("main"),
+		get_rs_src("musashi"),
+	},
+
 	Depends = { "68k_emu_core" },
 }
 

@@ -1,9 +1,14 @@
 #[macro_use]
 extern crate clap;
 extern crate byteorder;
+extern crate musashi;
+
+#[macro_use]
+extern crate lazy_static;
 
 pub mod amiga_hunk_parser;
-use amiga_hunk_parser::HunkParser;
+pub mod amiga;
+use amiga::Amiga;
 
 fn main() {
     let matches = clap_app!(open_depacker =>
@@ -21,8 +26,9 @@ fn main() {
         3 | _ => println!("Don't be crazy"),
     }
 
+    let amiga = Amiga::new();
+
     if let Some(ref file) = matches.value_of("input") {
-        println!("Using config file: {}", file);
-        HunkParser::parse_file(file).unwrap();
+        amiga.load_executable_to_memory(file).unwrap();
     }
 }

@@ -3280,8 +3280,10 @@ unsigned int m68k_disassemble(char* str_buff, unsigned int pc, unsigned int cpu_
 	g_cpu_pc = pc;
 	g_helper_str[0] = 0;
 	g_cpu_ir = read_imm_16();
+
 	g_instruction_table[g_cpu_ir]();
-	sprintf(str_buff, "%s%s", g_dasm_str, g_helper_str);
+	printf("%s\n", g_dasm_str);
+	//sprintf(str_buff, "%s%s", g_dasm_str, g_helper_str);
 	return g_cpu_pc - pc;
 }
 
@@ -3469,7 +3471,6 @@ unsigned int m68k_is_valid_instruction(unsigned int instruction, unsigned int cp
 
 	return 1;
 }
-
 
 
 /* ======================================================================== */
