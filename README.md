@@ -1,5 +1,5 @@
 OpenDepacker
-------------
+-------------
 
 Info will be filled in here later. For now read the motivation behind this tool
 
