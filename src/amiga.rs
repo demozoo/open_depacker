@@ -8,9 +8,9 @@ use std::io;
 // 512 - 4MB - Executable has the range of 16MB
 // 4MB - 16MB - 16MB -> Heap, bss, etc
 
-static mut AMIGA_MEMORY: [u8; 16 * 1024 * 1024] = [0; 16 * 1024 * 1024]; 
+static mut AMIGA_MEMORY: [u8; 16 * 1024 * 1024] = [0; 16 * 1024 * 1024];
 
-const EXE_START:usize = 512 * 1024;
+const EXE_START: usize = 512 * 1024;
 
 pub struct Amiga {
     pub dummy: i32,
@@ -18,9 +18,7 @@ pub struct Amiga {
 
 impl Amiga {
     pub fn new() -> Amiga {
-        Amiga {
-            dummy: 0,
-        }
+        Amiga { dummy: 0 }
     }
 
     pub fn parse_executable(&self, filename: &str) -> Result<Vec<Hunk>, io::Error> {
@@ -39,13 +37,15 @@ impl Amiga {
 
         for hunk in &hunks {
             if hunk.hunk_type == HunkType::Code {
-                hunk.code_data.as_ref().map(|data| {
-                    unsafe {
-                        Self::copy_data(&data, &mut AMIGA_MEMORY[exe_pos..], hunk.data_size);
-                    }
-                    exe_pos += hunk.data_size;
-                    total_code_size += hunk.data_size as u32;
-                });
+                hunk.code_data
+                    .as_ref()
+                    .map(|data| {
+                        unsafe {
+                            Self::copy_data(&data, &mut AMIGA_MEMORY[exe_pos..], hunk.data_size);
+                        }
+                        exe_pos += hunk.data_size;
+                        total_code_size += hunk.data_size as u32;
+                    });
             }
         }
 
@@ -73,65 +73,52 @@ impl Amiga {
     }
 }
 
-// 
+//
 // This is kinda ugly but this is the way Musashi works. When we have
 // our own 68k emulator this should be cleaned up and not be global
 //
 
 #[no_mangle]
-pub extern fn m68k_read_memory_32(address: u32) -> u32 {
-    unsafe {
-        BigEndian::read_u32(&AMIGA_MEMORY[address as usize..])
-    }
+pub extern "C" fn m68k_read_memory_32(address: u32) -> u32 {
+    unsafe { BigEndian::read_u32(&AMIGA_MEMORY[address as usize..]) }
 }
 
 #[no_mangle]
-pub extern fn m68k_read_memory_16(address: u32) -> u16 {
-    unsafe {
-        BigEndian::read_u16(&AMIGA_MEMORY[address as usize..]) as u16
-    }
+pub extern "C" fn m68k_read_memory_16(address: u32) -> u16 {
+    unsafe { BigEndian::read_u16(&AMIGA_MEMORY[address as usize..]) as u16 }
 }
 
 #[no_mangle]
-pub extern fn m68k_read_memory_8(address: u32) -> u32 {
-    unsafe {
-        AMIGA_MEMORY[address as usize] as u32
-    }
+pub extern "C" fn m68k_read_memory_8(address: u32) -> u32 {
+    unsafe { AMIGA_MEMORY[address as usize] as u32 }
 }
 
 #[no_mangle]
-pub extern fn m68k_write_memory_8(address: u32, value: u32) {
-    unsafe {
-        AMIGA_MEMORY[address as usize] = value as u8
-    }
+pub extern "C" fn m68k_write_memory_8(address: u32, value: u32) {
+    unsafe { AMIGA_MEMORY[address as usize] = value as u8 }
 }
 
 #[no_mangle]
-pub extern fn m68k_write_memory_16(address: u32, value: u32) {
-    unsafe {
-        BigEndian::write_u16(&mut AMIGA_MEMORY[address as usize..], value as u16)
-    }
+pub extern "C" fn m68k_write_memory_16(address: u32, value: u32) {
+    unsafe { BigEndian::write_u16(&mut AMIGA_MEMORY[address as usize..], value as u16) }
 }
 
 #[no_mangle]
-pub extern fn m68k_write_memory_32(address: u32, value: u32) {
-    unsafe {
-        BigEndian::write_u32(&mut AMIGA_MEMORY[address as usize..], value)
-    }
+pub extern "C" fn m68k_write_memory_32(address: u32, value: u32) {
+    unsafe { BigEndian::write_u32(&mut AMIGA_MEMORY[address as usize..], value) }
 }
 
 #[no_mangle]
-pub extern fn m68k_read_disassembler_32(address: u32) -> u32 {
+pub extern "C" fn m68k_read_disassembler_32(address: u32) -> u32 {
     m68k_read_memory_32(address)
 }
 
 #[no_mangle]
-pub extern fn m68k_read_disassembler_16(address: u32) -> u32 {
+pub extern "C" fn m68k_read_disassembler_16(address: u32) -> u32 {
     m68k_read_memory_16(address) as u32
 }
 
 #[no_mangle]
-pub extern fn m68k_read_disassembler_8(address: u32) -> u32 {
+pub extern "C" fn m68k_read_disassembler_8(address: u32) -> u32 {
     m68k_read_memory_8(address)
 }
-

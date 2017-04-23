@@ -92,23 +92,23 @@ pub struct Struct_Unnamed3 {
     pub cyc_reset: ::std::os::raw::c_uint,
     pub cyc_instruction: *mut ::std::os::raw::c_uchar,
     pub cyc_exception: *mut ::std::os::raw::c_uchar,
-    pub int_ack_callback: ::std::option::Option<extern "C" fn(int_line:
-                                                                  ::std::os::raw::c_int)
-                                                    -> ::std::os::raw::c_int>,
-    pub bkpt_ack_callback: ::std::option::Option<extern "C" fn(data:
-                                                                   ::std::os::raw::c_uint)>,
+    pub int_ack_callback: ::std::option::Option<extern "C" fn(int_line: ::std::os::raw::c_int)
+                                                              -> ::std::os::raw::c_int>,
+    pub bkpt_ack_callback: ::std::option::Option<extern "C" fn(data: ::std::os::raw::c_uint)>,
     pub reset_instr_callback: ::std::option::Option<extern "C" fn()>,
-    pub pc_changed_callback: ::std::option::Option<extern "C" fn(new_pc:
-                                                                     ::std::os::raw::c_uint)>,
-    pub set_fc_callback: ::std::option::Option<extern "C" fn(new_fc:
-                                                                 ::std::os::raw::c_uint)>,
+    pub pc_changed_callback: ::std::option::Option<extern "C" fn(new_pc: ::std::os::raw::c_uint)>,
+    pub set_fc_callback: ::std::option::Option<extern "C" fn(new_fc: ::std::os::raw::c_uint)>,
     pub instr_hook_callback: ::std::option::Option<extern "C" fn()>,
 }
 impl ::std::clone::Clone for Struct_Unnamed3 {
-    fn clone(&self) -> Self { *self }
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 impl ::std::default::Default for Struct_Unnamed3 {
-    fn default() -> Self { unsafe { ::std::mem::zeroed() } }
+    fn default() -> Self {
+        unsafe { ::std::mem::zeroed() }
+    }
 }
 pub type m68ki_cpu_core = Struct_Unnamed3;
 extern "C" {
@@ -118,8 +118,7 @@ extern "C" {
     pub static mut m68ki_shift_8_table: *mut ::std::os::raw::c_uchar;
     pub static mut m68ki_shift_16_table: *mut ::std::os::raw::c_ushort;
     pub static mut m68ki_shift_32_table: *mut ::std::os::raw::c_uint;
-    pub static mut m68ki_exception_cycle_table:
-               *mut [::std::os::raw::c_uchar; 256usize];
+    pub static mut m68ki_exception_cycle_table: *mut [::std::os::raw::c_uchar; 256usize];
     pub static mut m68ki_address_space: ::std::os::raw::c_uint;
     pub static mut m68ki_ea_idx_cycle_table: *mut ::std::os::raw::c_uchar;
     pub static mut m68ki_aerr_address: ::std::os::raw::c_uint;
@@ -127,59 +126,42 @@ extern "C" {
     pub static mut m68ki_aerr_fc: ::std::os::raw::c_uint;
 }
 extern "C" {
-    pub fn m68k_read_memory_8(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_memory_16(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_memory_32(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_immediate_16(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_immediate_32(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_pcrelative_8(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_pcrelative_16(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_pcrelative_32(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_disassembler_8(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_disassembler_16(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_read_disassembler_32(address: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
-    pub fn m68k_write_memory_8(address: ::std::os::raw::c_uint,
-                               value: ::std::os::raw::c_uint);
-    pub fn m68k_write_memory_16(address: ::std::os::raw::c_uint,
-                                value: ::std::os::raw::c_uint);
-    pub fn m68k_write_memory_32(address: ::std::os::raw::c_uint,
-                                value: ::std::os::raw::c_uint);
+    pub fn m68k_read_memory_8(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_memory_16(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_memory_32(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_immediate_16(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_immediate_32(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_pcrelative_8(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_pcrelative_16(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_pcrelative_32(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_disassembler_8(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_disassembler_16(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_read_disassembler_32(address: ::std::os::raw::c_uint) -> ::std::os::raw::c_uint;
+    pub fn m68k_write_memory_8(address: ::std::os::raw::c_uint, value: ::std::os::raw::c_uint);
+    pub fn m68k_write_memory_16(address: ::std::os::raw::c_uint, value: ::std::os::raw::c_uint);
+    pub fn m68k_write_memory_32(address: ::std::os::raw::c_uint, value: ::std::os::raw::c_uint);
     pub fn m68k_write_memory_32_pd(address: ::std::os::raw::c_uint,
                                    value: ::std::os::raw::c_uint);
     pub fn m68k_set_int_ack_callback(callback:
                                          ::std::option::Option<extern "C" fn(int_level:
                                                                                  ::std::os::raw::c_int)
                                                                    ->
-                                                                       ::std::os::raw::c_int>);
+::std::os::raw::c_int>);
     pub fn m68k_set_bkpt_ack_callback(callback:
                                           ::std::option::Option<extern "C" fn(data:
-                                                                                  ::std::os::raw::c_uint)>);
-    pub fn m68k_set_reset_instr_callback(callback:
-                                             ::std::option::Option<extern "C" fn()>);
+::std::os::raw::c_uint)>);
+    pub fn m68k_set_reset_instr_callback(callback: ::std::option::Option<extern "C" fn()>);
     pub fn m68k_set_pc_changed_callback(callback:
                                             ::std::option::Option<extern "C" fn(new_pc:
-                                                                                    ::std::os::raw::c_uint)>);
+::std::os::raw::c_uint)>);
     pub fn m68k_set_fc_callback(callback:
                                     ::std::option::Option<extern "C" fn(new_fc:
-                                                                            ::std::os::raw::c_uint)>);
-    pub fn m68k_set_instr_hook_callback(callback:
-                                            ::std::option::Option<extern "C" fn()>);
+::std::os::raw::c_uint)>);
+    pub fn m68k_set_instr_hook_callback(callback: ::std::option::Option<extern "C" fn()>);
     pub fn m68k_set_cpu_type(cpu_type: ::std::os::raw::c_uint);
     pub fn m68k_init();
     pub fn m68k_pulse_reset();
-    pub fn m68k_execute(num_cycles: ::std::os::raw::c_int)
-     -> ::std::os::raw::c_int;
+    pub fn m68k_execute(num_cycles: ::std::os::raw::c_int) -> ::std::os::raw::c_int;
     pub fn m68k_cycles_run() -> ::std::os::raw::c_int;
     pub fn m68k_cycles_remaining() -> ::std::os::raw::c_int;
     pub fn m68k_modify_timeslice(cycles: ::std::os::raw::c_int);
@@ -187,21 +169,21 @@ extern "C" {
     pub fn m68k_set_irq(int_level: ::std::os::raw::c_uint);
     pub fn m68k_pulse_halt();
     pub fn m68k_context_size() -> ::std::os::raw::c_uint;
-    pub fn m68k_get_context(dst: *mut ::std::os::raw::c_void)
-     -> ::std::os::raw::c_uint;
+    pub fn m68k_get_context(dst: *mut ::std::os::raw::c_void) -> ::std::os::raw::c_uint;
     pub fn m68k_set_context(dst: *mut ::std::os::raw::c_void);
     pub fn m68k_state_register(_type: *const ::std::os::raw::c_char);
     pub fn m68k_get_reg(context: *mut ::std::os::raw::c_void,
-                        reg: m68k_register_t) -> ::std::os::raw::c_uint;
+                        reg: m68k_register_t)
+                        -> ::std::os::raw::c_uint;
     pub fn m68k_set_reg(reg: m68k_register_t, value: ::std::os::raw::c_uint);
     pub fn m68k_is_valid_instruction(instruction: ::std::os::raw::c_uint,
                                      cpu_type: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
+                                     -> ::std::os::raw::c_uint;
     pub fn m68k_disassemble(str_buff: *mut ::std::os::raw::c_char,
                             pc: ::std::os::raw::c_uint,
                             cpu_type: ::std::os::raw::c_uint)
-     -> ::std::os::raw::c_uint;
+                            -> ::std::os::raw::c_uint;
     pub fn m68ki_disassemble_quick(pc: ::std::os::raw::c_uint,
                                    cpu_type: ::std::os::raw::c_uint)
-     -> *mut ::std::os::raw::c_char;
+                                   -> *mut ::std::os::raw::c_char;
 }

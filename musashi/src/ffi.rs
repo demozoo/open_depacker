@@ -55,7 +55,7 @@ pub enum m68k_register_t {
     M68K_REG_CPU_TYPE = 31,
 }
 #[allow(dead_code)]
-extern {
+extern "C" {
     /*
     pub fn m68k_read_memory_8(address: c_uint) -> c_uint;
     pub fn m68k_read_memory_16(address: c_uint) -> c_uint;

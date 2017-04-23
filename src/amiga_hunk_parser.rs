@@ -100,11 +100,13 @@ pub enum HunkType {
     Bss,
 }
 
+#[derive(Debug)]
 pub struct RelocInfo32 {
     pub target: usize,
     pub data: Vec<u32>,
 }
 
+#[derive(Debug)]
 pub struct Hunk {
     pub mem_type: MemoryType,
     pub hunk_type: HunkType,
@@ -130,7 +132,8 @@ impl HunkParser {
     fn skip_hunk(file: &mut File, name: &'static str) -> io::Result<()> {
         println!("Skipping {}\n", name);
         let seek_offset = file.read_u32::<BigEndian>()?;
-        file.seek(io::SeekFrom::Current(seek_offset as i64)).map(|_|())
+        file.seek(io::SeekFrom::Current(seek_offset as i64))
+            .map(|_| ())
     }
 
     fn get_size_type(t: u32) -> (usize, MemoryType) {
@@ -172,7 +175,8 @@ impl HunkParser {
         let mut sym_len = file.read_u32::<BigEndian>()? * 4;
 
         while sym_len > 0 {
-            file.seek(io::SeekFrom::Current((sym_len + 4) as i64)).map(|_| ())?;
+            file.seek(io::SeekFrom::Current((sym_len + 4) as i64))
+                .map(|_| ())?;
             sym_len = file.read_u32::<BigEndian>()? * 4;
         }
 
@@ -213,14 +217,14 @@ impl HunkParser {
             let hunk_type = file.read_u32::<BigEndian>()?;
 
             match hunk_type {
-                HUNK_UNIT => { Self::skip_hunk(file, "HUNK_UNIT")? }
-                HUNK_NAME => { Self::skip_hunk(file, "HUNK_NAME")? }
-                HUNK_DEBUG => { Self::skip_hunk(file, "HUNK_DEBUG")? }
-                HUNK_CODE => { Self::parse_code_or_data(HunkType::Code, hunk, file)? }
-                HUNK_DATA => { Self::parse_code_or_data(HunkType::Data, hunk, file)? }
-                HUNK_BSS => { Self::parse_bss(hunk, file)? }
-                HUNK_RELOC32 => { Self::parse_reloc32(hunk, file)? }
-                HUNK_SYMBOL => { Self::parse_symbol(file)? }
+                HUNK_UNIT => Self::skip_hunk(file, "HUNK_UNIT")?,
+                HUNK_NAME => Self::skip_hunk(file, "HUNK_NAME")?,
+                HUNK_DEBUG => Self::skip_hunk(file, "HUNK_DEBUG")?,
+                HUNK_CODE => Self::parse_code_or_data(HunkType::Code, hunk, file)?,
+                HUNK_DATA => Self::parse_code_or_data(HunkType::Data, hunk, file)?,
+                HUNK_BSS => Self::parse_bss(hunk, file)?,
+                HUNK_RELOC32 => Self::parse_reloc32(hunk, file)?,
+                HUNK_SYMBOL => Self::parse_symbol(file)?,
                 HUNK_END => {
                     return Ok(());
                 }
@@ -238,7 +242,7 @@ impl HunkParser {
         let mut file = File::open(filename)?;
 
         let hunk_header = file.read_u32::<BigEndian>()?;
-        if hunk_header != HUNK_HEADER  {
+        if hunk_header != HUNK_HEADER {
             return Err(Error::new(ErrorKind::Other, "Unable to find correct HUNK_HEADER"));
         };
 
@@ -260,9 +264,9 @@ impl HunkParser {
         for _ in 0..hunk_count {
             let (size, mem_type) = Self::get_size_type(file.read_u32::<BigEndian>()?);
             hunk_table.push(SizesTypes {
-                mem_type: mem_type,
-                size: size
-            });
+                                mem_type: mem_type,
+                                size: size,
+                            });
         }
 
         let mut hunks = Vec::with_capacity(hunk_count);
@@ -270,11 +274,11 @@ impl HunkParser {
         for i in 0..hunk_count {
             let mut hunk = Hunk {
                 mem_type: hunk_table[i].mem_type,
-                    hunk_type: HunkType::Bss,
-                    alloc_size: hunk_table[i].size as usize,
-                    data_size: 0,
-                    code_data: None,
-                    reloc_32: None,
+                hunk_type: HunkType::Bss,
+                alloc_size: hunk_table[i].size as usize,
+                data_size: 0,
+                code_data: None,
+                reloc_32: None,
             };
 
             Self::fill_hunk(&mut hunk, &mut file)?;
@@ -284,9 +288,9 @@ impl HunkParser {
 
         // dump info
 
-        //for hunk in hunks {
-        //   println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size);
-        //}
+        for hunk in &hunks {
+            println!("type {:?} - {:?}", hunk.hunk_type, hunk);
+        }
 
         //println!("b {}", hunk_header);
         Ok(hunks)

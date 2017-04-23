@@ -8,16 +8,12 @@ pub struct Musashi {
 
 impl Musashi {
     pub fn init() {
-        //unsafe { 
-            //m68k_init();
+        //unsafe {
+        //m68k_init();
         //}
     }
 
     pub fn disassemble(pc: u32) -> u32 {
-        unsafe {
-            ffi::m68k_disassemble(0 as *mut i8, pc, 1) as u32
-        }
+        unsafe { ffi::m68k_disassemble(0 as *mut i8, pc, 1) as u32 }
     }
 }
-
-
