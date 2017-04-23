@@ -101,7 +101,7 @@ pub enum HunkType {
 }
 
 pub struct RelocInfo32 {
-    pub target: usize, 
+    pub target: usize,
     pub data: Vec<u32>,
 }
 
@@ -110,7 +110,7 @@ pub struct Hunk {
     pub hunk_type: HunkType,
     pub alloc_size: usize,
     pub data_size: usize,
-    pub code_data: Option<Vec<u8>>, 
+    pub code_data: Option<Vec<u8>>,
     pub reloc_32: Option<Vec<RelocInfo32>>,
 }
 
@@ -129,7 +129,7 @@ struct SizesTypes {
 impl HunkParser {
     fn skip_hunk(file: &mut File, name: &'static str) -> io::Result<()> {
         println!("Skipping {}\n", name);
-        let seek_offset = try!(file.read_u32::<BigEndian>());
+        let seek_offset = file.read_u32::<BigEndian>()?;
         file.seek(io::SeekFrom::Current(seek_offset as i64)).map(|_|())
     }
 
@@ -146,7 +146,7 @@ impl HunkParser {
     }
 
     fn parse_bss(hunk: &mut Hunk, file: &mut File) -> io::Result<()> {
-        let (size, mem_type) = Self::get_size_type(try!(file.read_u32::<BigEndian>()));
+        let (size, mem_type) = Self::get_size_type(file.read_u32::<BigEndian>()?);
         hunk.hunk_type = HunkType::Bss;
         hunk.data_size = size;
         hunk.mem_type = mem_type;
@@ -154,14 +154,14 @@ impl HunkParser {
     }
 
     fn parse_code_or_data(hunk_type: HunkType, hunk: &mut Hunk, file: &mut File) -> io::Result<()> {
-        let (size, mem_type) = Self::get_size_type(try!(file.read_u32::<BigEndian>()));
+        let (size, mem_type) = Self::get_size_type(file.read_u32::<BigEndian>()?);
         let mut code_data: Vec<u8> = vec![0; size];
 
         hunk.data_size = size;
         hunk.hunk_type = hunk_type;
         hunk.mem_type = mem_type;
 
-        try!(file.read(&mut code_data));
+        file.read(&mut code_data)?;
 
         hunk.code_data = Some(code_data);
 
@@ -169,27 +169,27 @@ impl HunkParser {
     }
 
     fn parse_symbol(file: &mut File) -> io::Result<()> {
-        let mut sym_len = try!(file.read_u32::<BigEndian>()) * 4;
+        let mut sym_len = file.read_u32::<BigEndian>()? * 4;
 
         while sym_len > 0 {
-            try!(file.seek(io::SeekFrom::Current((sym_len + 4) as i64)).map(|_| ()));
-            sym_len = try!(file.read_u32::<BigEndian>()) * 4;
+            file.seek(io::SeekFrom::Current((sym_len + 4) as i64)).map(|_| ())?;
+            sym_len = file.read_u32::<BigEndian>()? * 4;
         }
 
         Ok(())
     }
 
     fn parse_reloc32(hunk: &mut Hunk, file: &mut File) -> io::Result<()> {
-        let mut relocs = Vec::<RelocInfo32>::new();  
+        let mut relocs = Vec::<RelocInfo32>::new();
 
         loop {
-            let count = try!(file.read_u32::<BigEndian>()) as usize;
+            let count = file.read_u32::<BigEndian>()? as usize;
 
             if count == 0 {
                 break;
             }
 
-            let target = try!(file.read_u32::<BigEndian>()) as usize;
+            let target = file.read_u32::<BigEndian>()? as usize;
 
             let mut reloc = RelocInfo32 {
                 target: target,
@@ -197,7 +197,7 @@ impl HunkParser {
             };
 
             for _ in 0..count {
-                reloc.data.push(try!(file.read_u32::<BigEndian>()));
+                reloc.data.push(file.read_u32::<BigEndian>()?);
             }
 
             relocs.push(reloc);
@@ -210,17 +210,17 @@ impl HunkParser {
 
     fn fill_hunk(hunk: &mut Hunk, file: &mut File) -> io::Result<()> {
         loop {
-            let hunk_type = try!(file.read_u32::<BigEndian>());
+            let hunk_type = file.read_u32::<BigEndian>()?;
 
             match hunk_type {
-                HUNK_UNIT => { try!(Self::skip_hunk(file, "HUNK_UNIT")) }
-                HUNK_NAME => { try!(Self::skip_hunk(file, "HUNK_NAME")) }
-                HUNK_DEBUG => { try!(Self::skip_hunk(file, "HUNK_DEBUG")) }
-                HUNK_CODE => { try!(Self::parse_code_or_data(HunkType::Code, hunk, file)) }
-                HUNK_DATA => { try!(Self::parse_code_or_data(HunkType::Data, hunk, file)) }
-                HUNK_BSS => { try!(Self::parse_bss(hunk, file)) }
-                HUNK_RELOC32 => { try!(Self::parse_reloc32(hunk, file)) }
-                HUNK_SYMBOL => { try!(Self::parse_symbol(file)) }
+                HUNK_UNIT => { Self::skip_hunk(file, "HUNK_UNIT")? }
+                HUNK_NAME => { Self::skip_hunk(file, "HUNK_NAME")? }
+                HUNK_DEBUG => { Self::skip_hunk(file, "HUNK_DEBUG")? }
+                HUNK_CODE => { Self::parse_code_or_data(HunkType::Code, hunk, file)? }
+                HUNK_DATA => { Self::parse_code_or_data(HunkType::Data, hunk, file)? }
+                HUNK_BSS => { Self::parse_bss(hunk, file)? }
+                HUNK_RELOC32 => { Self::parse_reloc32(hunk, file)? }
+                HUNK_SYMBOL => { Self::parse_symbol(file)? }
                 HUNK_END => {
                     return Ok(());
                 }
@@ -235,19 +235,19 @@ impl HunkParser {
     pub fn parse_file(filename: &str) -> Result<Vec<Hunk>, io::Error> {
         //let mut index = 0;
 
-        let mut file = try!(File::open(filename));
+        let mut file = File::open(filename)?;
 
-        let hunk_header = try!(file.read_u32::<BigEndian>());
+        let hunk_header = file.read_u32::<BigEndian>()?;
         if hunk_header != HUNK_HEADER  {
             return Err(Error::new(ErrorKind::Other, "Unable to find correct HUNK_HEADER"));
         };
 
         // Skip header/string section
-        try!(file.read_u32::<BigEndian>());
+        file.read_u32::<BigEndian>()?;
 
-        let table_size = try!(file.read_u32::<BigEndian>()) as i32;
-        let first_hunk = try!(file.read_u32::<BigEndian>()) as i32;
-        let last_hunk = try!(file.read_u32::<BigEndian>()) as i32;
+        let table_size = file.read_u32::<BigEndian>()? as i32;
+        let first_hunk = file.read_u32::<BigEndian>()? as i32;
+        let last_hunk = file.read_u32::<BigEndian>()? as i32;
 
         if table_size < 0 || first_hunk < 0 || last_hunk < 0 {
             return Err(Error::new(ErrorKind::Other, "Invalid sizes for hunks"));
@@ -258,10 +258,10 @@ impl HunkParser {
         let mut hunk_table = Vec::with_capacity(hunk_count);
 
         for _ in 0..hunk_count {
-            let (size, mem_type) = Self::get_size_type(try!(file.read_u32::<BigEndian>()));
+            let (size, mem_type) = Self::get_size_type(file.read_u32::<BigEndian>()?);
             hunk_table.push(SizesTypes {
                 mem_type: mem_type,
-                size: size 
+                size: size
             });
         }
 
@@ -269,15 +269,15 @@ impl HunkParser {
 
         for i in 0..hunk_count {
             let mut hunk = Hunk {
-                mem_type: hunk_table[i].mem_type, 
+                mem_type: hunk_table[i].mem_type,
                     hunk_type: HunkType::Bss,
                     alloc_size: hunk_table[i].size as usize,
                     data_size: 0,
-                    code_data: None, 
-                    reloc_32: None, 
+                    code_data: None,
+                    reloc_32: None,
             };
 
-            try!(Self::fill_hunk(&mut hunk, &mut file));
+            Self::fill_hunk(&mut hunk, &mut file)?;
 
             hunks.push(hunk);
         }
@@ -285,7 +285,7 @@ impl HunkParser {
         // dump info
 
         //for hunk in hunks {
-        //   println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size); 
+        //   println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size);
         //}
 
         //println!("b {}", hunk_header);
