@@ -112,6 +112,7 @@ pub struct Hunk {
     pub hunk_type: HunkType,
     pub alloc_size: usize,
     pub data_size: usize,
+    pub memory_offset: usize,
     pub code_data: Option<Vec<u8>>,
     pub reloc_32: Option<Vec<RelocInfo32>>,
 }
@@ -277,6 +278,7 @@ impl HunkParser {
                 hunk_type: HunkType::Bss,
                 alloc_size: hunk_table[i].size as usize,
                 data_size: 0,
+                memory_offset: 0,
                 code_data: None,
                 reloc_32: None,
             };
@@ -287,10 +289,11 @@ impl HunkParser {
         }
 
         // dump info
-
+        /*
         for hunk in &hunks {
             println!("type {:?} - {:?}", hunk.hunk_type, hunk);
         }
+        */
 
         //println!("b {}", hunk_header);
         Ok(hunks)
