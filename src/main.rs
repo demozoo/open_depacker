@@ -3,7 +3,6 @@ extern crate clap;
 extern crate byteorder;
 extern crate musashi;
 
-#[macro_use]
 extern crate lazy_static;
 
 pub mod amiga_hunk_parser;
