@@ -2,11 +2,14 @@
 extern crate clap;
 extern crate byteorder;
 extern crate musashi;
+extern crate combine;
 
 extern crate lazy_static;
 
 pub mod amiga_hunk_parser;
 pub mod amiga;
+pub mod command;
+
 use amiga::Amiga;
 
 fn main() {
