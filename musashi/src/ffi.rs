@@ -5,8 +5,8 @@ use std::os::raw::{c_char, c_int, c_uint, c_void};
 
 #[derive(Clone, Copy)]
 #[repr(u32)]
-#[allow(non_camel_case_types)] 
-#[allow(dead_code)] 
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
 pub enum EnumUnnamed1 {
     M68K_CPU_TYPE_INVALID = 0,
     M68K_CPU_TYPE_68000 = 1,
@@ -18,9 +18,9 @@ pub enum EnumUnnamed1 {
 }
 #[derive(Clone, Copy)]
 #[repr(u32)]
-#[allow(non_camel_case_types)] 
-#[allow(dead_code)] 
-pub enum EnumUnnamed2 {
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
+pub enum m68k_register_t {
     M68K_REG_D0 = 0,
     M68K_REG_D1 = 1,
     M68K_REG_D2 = 2,
@@ -54,9 +54,7 @@ pub enum EnumUnnamed2 {
     M68K_REG_IR = 30,
     M68K_REG_CPU_TYPE = 31,
 }
-#[allow(non_camel_case_types)] 
-pub type m68k_register_t = EnumUnnamed2;
-#[allow(dead_code)] 
+#[allow(dead_code)]
 extern {
     /*
     pub fn m68k_read_memory_8(address: c_uint) -> c_uint;
