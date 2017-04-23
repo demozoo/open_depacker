@@ -31,43 +31,82 @@ impl Amiga {
         }
     }
 
-    fn load_to_memory(hunks: Vec<Hunk>) {
-        let mut exe_pos = EXE_START;
-        let mut total_code_size = 0u32;
+    fn clear_memory<'a>(dest: &'a mut [u8], size: usize) {
+        for i in 0..size {
+            dest[i] = 0;
+        }
+    }
 
-        for hunk in &hunks {
-            if hunk.hunk_type == HunkType::Code {
-                hunk.code_data
-                    .as_ref()
-                    .map(|data| {
-                        unsafe {
-                            Self::copy_data(&data, &mut AMIGA_MEMORY[exe_pos..], hunk.data_size);
-                        }
-                        exe_pos += hunk.data_size;
-                        total_code_size += hunk.data_size as u32;
-                    });
+    pub fn load_code_data(hunks: &mut Vec<Hunk>, hunk_type: HunkType, offset: usize) -> usize {
+        let mut curr_offset = offset;
+
+        for hunk in hunks.iter_mut() {
+            if hunk.hunk_type == hunk_type {
+                hunk.memory_offset = curr_offset;
+                hunk.code_data.as_ref().map(|data| {
+                    unsafe {
+                        // Needs to be unsafe because Musashi callbacks doesn't provide userdata
+                        // thus the Amiga memory needs to be global
+                        Self::copy_data(&data, &mut AMIGA_MEMORY[curr_offset..], hunk.data_size);
+                    }
+
+                    curr_offset += hunk.data_size;
+                });
             }
         }
 
+        curr_offset
+    }
+
+    fn init_bss_sections(hunks: &mut Vec<Hunk>, offset: usize) -> usize {
+        let mut curr_offset = offset;
+
+        for hunk in hunks.iter_mut() {
+            if hunk.hunk_type == HunkType::Bss {
+                hunk.memory_offset = curr_offset;
+                hunk.code_data.as_ref().map(|_| {
+                    unsafe {
+                        // Needs to be unsafe because Musashi callbacks doesn't provide userdata
+                        // thus the Amiga memory needs to be global
+                        Self::clear_memory(&mut AMIGA_MEMORY[curr_offset..], hunk.data_size);
+                    }
+
+                    curr_offset += hunk.data_size;
+                });
+            }
+        }
+
+        curr_offset
+    }
+
+    fn load_to_memory(hunks: &mut Vec<Hunk>) {
+        let code_end = Self::load_code_data(hunks, HunkType::Code, EXE_START);
+        let data_end = Self::load_code_data(hunks, HunkType::Data, code_end);
+        let bss_end = Self::init_bss_sections(hunks, data_end);
+
+        println!("code end: {} data end: {} bss end: {}", code_end, data_end, bss_end);
+
         let mut pc = EXE_START as u32;
 
-        println!("total code size {}", total_code_size);
-
-        while pc < EXE_START as u32 + total_code_size {
+        while pc < code_end as u32 {
             pc += Musashi::disassemble(pc);
         }
     }
 
     pub fn load_executable_to_memory(&self, filename: &str) -> io::Result<()> {
-        let hunks = try!(Self::parse_executable(self, filename));
+        let mut hunks = Self::parse_executable(self, filename)?;
 
         /*
         for hunk in &hunks {
-           println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size); 
+           println!("type {:?} - size {} - alloc_size {}", hunk.hunk_type, hunk.data_size, hunk.alloc_size);
         }
         */
 
-        Self::load_to_memory(hunks);
+        Self::load_to_memory(&mut hunks);
+
+        for hunk in &hunks {
+            println!("type {:?} - {:?}", hunk.hunk_type, hunk);
+        }
 
         Ok(())
     }
