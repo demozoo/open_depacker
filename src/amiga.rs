@@ -13,15 +13,38 @@ static mut AMIGA_MEMORY: [u8; 16 * 1024 * 1024] = [0; 16 * 1024 * 1024];
 const EXE_START: usize = 512 * 1024;
 
 pub struct Amiga {
-    pub dummy: i32,
+    pub dummy: u32,
 }
 
 impl Amiga {
     pub fn new() -> Amiga {
-        Amiga { dummy: 0 }
+        Amiga {
+            dummy: 0,
+        }
     }
 
-    pub fn parse_executable(&self, filename: &str) -> Result<Vec<Hunk>, io::Error> {
+    // TODO: We should store within the amiga what data is allowed to be accesed
+    fn get_amiga_memory_long(offset: u32) -> u32 {
+        unsafe {
+            let v0 = AMIGA_MEMORY[offset as usize + 0] as u32;
+            let v1 = AMIGA_MEMORY[offset as usize + 1] as u32;
+            let v2 = AMIGA_MEMORY[offset as usize + 2] as u32;
+            let v3 = AMIGA_MEMORY[offset as usize + 3] as u32;
+            (v0 << 24) | (v1 << 16) | (v2 << 8) | v3
+        }
+    }
+
+    // TODO: We should store within the amiga what data is allowed to be accesed
+    fn set_amiga_memory_long(offset: u32, value: u32) {
+        unsafe {
+            AMIGA_MEMORY[offset as usize + 0] = ((value >> 24) & 0xff) as u8;
+            AMIGA_MEMORY[offset as usize + 1] = ((value >> 16) & 0xff) as u8;
+            AMIGA_MEMORY[offset as usize + 2] = ((value >> 8) & 0xff) as u8;
+            AMIGA_MEMORY[offset as usize + 3] = ((value >> 0) & 0xff) as u8;
+        }
+    }
+
+    pub fn parse_executable(filename: &str) -> Result<Vec<Hunk>, io::Error> {
         HunkParser::parse_file(filename)
     }
 
@@ -45,8 +68,6 @@ impl Amiga {
                 hunk.memory_offset = curr_offset;
                 hunk.code_data.as_ref().map(|data| {
                     unsafe {
-                        // Needs to be unsafe because Musashi callbacks doesn't provide userdata
-                        // thus the Amiga memory needs to be global
                         Self::copy_data(&data, &mut AMIGA_MEMORY[curr_offset..], hunk.data_size);
                     }
 
@@ -79,10 +100,39 @@ impl Amiga {
         curr_offset
     }
 
+    fn reloc_hunk(hunk: &Hunk, hunks: &Vec<Hunk>) {
+        if let Some(reloc_data) = hunk.reloc_32.as_ref() {
+            let hunk_offset = hunk.memory_offset as u32;
+
+            for reloc in reloc_data {
+                let target_hunk_offset = hunks[reloc.target].memory_offset as u32;
+
+                for offset in &reloc.data {
+                    let write_target = hunk_offset + offset;
+                    let value = Self::get_amiga_memory_long(write_target);
+                    Self::set_amiga_memory_long(write_target, target_hunk_offset + value);
+                }
+            }
+        }
+    }
+
+    ///
+    /// Relocates the code within our memory region
+    ///
+    fn reloc_code_data(hunks: &Vec<Hunk>) {
+        for hunk in hunks {
+            if hunk.hunk_type == HunkType::Code || hunk.hunk_type == HunkType::Data {
+                Self::reloc_hunk(hunk, hunks);
+            }
+        }
+    }
+
     fn load_to_memory(hunks: &mut Vec<Hunk>) {
         let code_end = Self::load_code_data(hunks, HunkType::Code, EXE_START);
         let data_end = Self::load_code_data(hunks, HunkType::Data, code_end);
         let bss_end = Self::init_bss_sections(hunks, data_end);
+
+        Self::reloc_code_data(hunks);
 
         println!("code end: {} data end: {} bss end: {}", code_end, data_end, bss_end);
 
@@ -94,7 +144,7 @@ impl Amiga {
     }
 
     pub fn load_executable_to_memory(&self, filename: &str) -> io::Result<()> {
-        let mut hunks = Self::parse_executable(self, filename)?;
+        let mut hunks = Self::parse_executable(filename)?;
 
         /*
         for hunk in &hunks {
