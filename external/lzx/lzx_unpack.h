@@ -40,7 +40,11 @@ typedef uint16_t lzx_uint16;
 typedef uint32_t lzx_uint32;
 typedef int32_t lzx_int32;
 
+#ifdef _WIN32
+#define LZX_RESTRICT
+#else
 #define LZX_RESTRICT __restrict__
+#endif
 
 enum lzx_method { LZX_M_UNPACKED = 0, LZX_M_PACKED = 2, LZX_M_MAX };
 
