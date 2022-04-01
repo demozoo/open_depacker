@@ -74,8 +74,7 @@ static inline int lzx_method_is_supported(int method) {
  *
  * @return            0 on success, otherwise -1.
  */
-// int lzx_unpack(unsigned char * LZX_RESTRICT dest, size_t dest_len,
-// const unsigned char *src, size_t src_len, int method);
+int lzx_unpack(unsigned char* dest, size_t dest_len, const unsigned char* src, size_t src_len, int method);
 
 #ifdef __cplusplus
 }

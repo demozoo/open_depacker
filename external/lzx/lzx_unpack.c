@@ -565,8 +565,7 @@ static void lzx_copy_dictionary(struct lzx_data* LZX_RESTRICT lzx, unsigned char
         *(dest++) = *(pos++);
 }
 
-int lzx_unpack(unsigned char* LZX_RESTRICT dest, size_t dest_len, const unsigned char* src, size_t src_len,
-               int method) {
+int lzx_unpack(unsigned char* dest, size_t dest_len, const unsigned char* src, size_t src_len, int method) {
     struct lzx_data* lzx;
     size_t bytes_out;
     size_t prev_distance = 1;
