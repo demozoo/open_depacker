@@ -20,10 +20,6 @@ struct Args {
     #[clap(short, long)]
     scan: String,
 
-    /// Target for extraction
-    #[clap(short, long)]
-    output_dir: String,
-
     /// Do recurseive scanning (include sub-directories) when using --scan
     #[clap(short, long)]
     recursive: bool,
