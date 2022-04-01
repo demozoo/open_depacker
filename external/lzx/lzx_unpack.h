@@ -35,19 +35,14 @@ extern "C" {
 #include <stddef.h> /* size_t */
 
 #include <stdint.h>
-typedef uint8_t  lzx_uint8;
+typedef uint8_t lzx_uint8;
 typedef uint16_t lzx_uint16;
 typedef uint32_t lzx_uint32;
-typedef int32_t  lzx_int32;
+typedef int32_t lzx_int32;
 
 #define LZX_RESTRICT __restrict__
 
-enum lzx_method
-{
-  LZX_M_UNPACKED = 0,
-  LZX_M_PACKED   = 2,
-  LZX_M_MAX
-};
+enum lzx_method { LZX_M_UNPACKED = 0, LZX_M_PACKED = 2, LZX_M_MAX };
 
 /**
  * Determine if a given LZX method is supported.
@@ -56,15 +51,13 @@ enum lzx_method
  *
  * @return          0 if a method is supported, otherwise -1.
  */
-static inline int lzx_method_is_supported(int method)
-{
-  switch(method)
-  {
-    case LZX_M_UNPACKED:
-    case LZX_M_PACKED:
-      return 0;
-  }
-  return -1;
+static inline int lzx_method_is_supported(int method) {
+    switch (method) {
+        case LZX_M_UNPACKED:
+        case LZX_M_PACKED:
+            return 0;
+    }
+    return -1;
 }
 
 /**
@@ -81,8 +74,8 @@ static inline int lzx_method_is_supported(int method)
  *
  * @return            0 on success, otherwise -1.
  */
-int lzx_unpack(unsigned char * LZX_RESTRICT dest, size_t dest_len,
- const unsigned char *src, size_t src_len, int method);
+// int lzx_unpack(unsigned char * LZX_RESTRICT dest, size_t dest_len,
+// const unsigned char *src, size_t src_len, int method);
 
 #ifdef __cplusplus
 }
