@@ -36,7 +36,7 @@
 #include "crc32.h"
 #include "lzx_unpack.h"
 
-#define LZX_DEBUG
+//#define LZX_DEBUG
 
 /* Arbitrary output maximum file length. */
 #define LZX_OUTPUT_MAX (1 << 29)
@@ -49,8 +49,8 @@
 #ifdef LZX_DEBUG
 #define debug(...)                       \
     do {                                 \
-        fprintf(stderr, "" __VA_ARGS__); \
-        fflush(stderr);                  \
+        fprintf(stdout, "" __VA_ARGS__); \
+        fflush(stdout);                  \
     } while (0)
 #endif
 
@@ -133,10 +133,46 @@ struct lzx_entry {
      */
 };
 
-static int lzx_read_header(struct lzx_data* lzx, FILE* f) {
+typedef struct FileBuffer {
+    unsigned char* data;
+    size_t size_left;
+} FileBuffer;
+
+size_t buffer_read(void* dest, size_t m, size_t size_, FileBuffer* f) {
+    size_t size = m * size_;
+
+    if (f->size_left == 0) {
+        return 0;
+    }
+
+    if (size > f->size_left) {
+        size = f->size_left;
+        f->size_left = 0;
+    } else {
+        f->size_left -= size;
+    }
+
+    memcpy(dest, f->data, size);
+    f->data += size;
+
+    return size;
+}
+
+int buffer_seek(FileBuffer* f, size_t offset) {
+    if (offset > f->size_left) {
+        return -1;
+    } else {
+        f->data += offset;
+        f->size_left -= offset;
+    }
+
+    return 0;
+}
+
+static int lzx_read_header(struct lzx_data* lzx, FileBuffer* f) {
     unsigned char buf[LZX_HEADER_SIZE];
 
-    if (fread(buf, 1, LZX_HEADER_SIZE, f) < LZX_HEADER_SIZE)
+    if (buffer_read(buf, 1, LZX_HEADER_SIZE, f) < LZX_HEADER_SIZE)
         return -1;
 
     if (memcmp(buf, "LZX", 3))
@@ -147,14 +183,14 @@ static int lzx_read_header(struct lzx_data* lzx, FILE* f) {
     return 0;
 }
 
-static int lzx_read_entry(struct lzx_entry* e, FILE* f) {
+static int lzx_read_entry(struct lzx_entry* e, FileBuffer* f) {
     unsigned char buf[256];
     lzx_uint32 crc;
 
     /* unlzx.c claims there's a method 32 for EOF, but nothing like this
      * has shown up. Most LZX archives just end after the last file. */
 
-    if (fread(buf, 1, LZX_ENTRY_SIZE, f) < LZX_ENTRY_SIZE)
+    if (buffer_read(buf, 1, LZX_ENTRY_SIZE, f) < LZX_ENTRY_SIZE)
         return -1;
 
     e->uncompressed_size = lzx_mem_u32(buf + 2);
@@ -173,7 +209,7 @@ static int lzx_read_entry(struct lzx_entry* e, FILE* f) {
     crc = lzx_crc32(0, buf, LZX_ENTRY_SIZE);
 
     if (e->filename_length) {
-        if (fread(e->filename, 1, e->filename_length, f) < e->filename_length)
+        if (buffer_read(e->filename, 1, e->filename_length, f) < e->filename_length)
             return -1;
 
         crc = lzx_crc32(crc, (lzx_uint8*)e->filename, e->filename_length);
@@ -182,7 +218,7 @@ static int lzx_read_entry(struct lzx_entry* e, FILE* f) {
 
     /* Mostly assuming this part because the example files don't have it. */
     if (e->comment_length) {
-        if (fread(buf, 1, e->comment_length, f) < e->comment_length)
+        if (buffer_read(buf, 1, e->comment_length, f) < e->comment_length)
             return -1;
 
         crc = lzx_crc32(crc, buf, e->comment_length);
@@ -220,7 +256,7 @@ static int lzx_check_entry(struct lzx_data* lzx, const struct lzx_entry* e, size
     int selectable = 1;
 
 #ifdef LZX_DEBUG
-    debug("checking file '%s'\n", e->filename);
+    // debug("checking file '%s'\n", e->filename);
 #endif
 
     /* Filter unsupported or junk files. */
@@ -228,11 +264,11 @@ static int lzx_check_entry(struct lzx_data* lzx, const struct lzx_entry* e, size
         e->uncompressed_size > LZX_OUTPUT_MAX || e->extract_version > 0x0a || lzx_method_is_supported(e->method) < 0) {
 #ifdef LZX_DEBUG
         if (e->header_crc32 != e->computed_header_crc32) {
-            debug("skipping file: header CRC-32 mismatch (got 0x%08zx, expected 0x%08zx)\n",
-                  (size_t)e->computed_header_crc32, (size_t)e->header_crc32);
+            // debug("skipping file: header CRC-32 mismatch (got 0x%08zx, expected 0x%08zx)\n",
+            //       (size_t)e->computed_header_crc32, (size_t)e->header_crc32);
         } else {
-            debug("skipping file: unsupported file (u:%zu c:%zu ver:%u method:%u flag:%u)\n",
-                  (size_t)e->uncompressed_size, (size_t)e->compressed_size, e->extract_version, e->method, e->flags);
+            // debug("skipping file: unsupported file (u:%zu c:%zu ver:%u method:%u flag:%u)\n",
+            //       (size_t)e->uncompressed_size, (size_t)e->compressed_size, e->extract_version, e->method, e->flags);
         }
 #endif
         lzx->merge_invalid = 1;
@@ -279,7 +315,46 @@ static int lzx_check_entry(struct lzx_data* lzx, const struct lzx_entry* e, size
     return -1;
 }
 
-int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file_len) {
+typedef struct FileEntry {
+    char* filename;
+    unsigned char* data;
+    int file_size;
+} FileEntry;
+
+typedef struct Filelist {
+    FileEntry* entries;
+    int len;
+    int capacity;
+} Filelist;
+
+void lzx_free_entries(Filelist list) {
+    for (int i = 0; i < list.len; ++i) {
+        free(list.entries[i].filename);
+        free(list.entries[i].data);
+    }
+    free(list.entries);
+}
+
+Filelist Filelist_new(int cap) {
+    Filelist list = {malloc(cap * sizeof(FileEntry)), 0, cap};
+    return list;
+}
+
+void Filelist_push_entry(Filelist* self, FileEntry entry) {
+    int len = self->len + 1;
+
+    if (len > self->capacity) {
+        const int cap = self->capacity * 2;
+        FileEntry* entries = realloc(self->entries, cap * sizeof(FileEntry));
+        self->entries = entries;
+        self->capacity = cap;
+    }
+
+    self->entries[self->len] = entry;
+    self->len = len;
+}
+
+Filelist lzx_read(unsigned char** dest, size_t* dest_len, FileBuffer* f, unsigned long file_len) {
     struct lzx_data lzx;
     struct lzx_entry e;
     unsigned char* out;
@@ -288,20 +363,23 @@ int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file
     lzx_uint32 out_crc32;
     int err;
 
+    Filelist file_list_empty = {0};
+    Filelist file_list = Filelist_new(16);
+
     if (lzx_read_header(&lzx, f) < 0)
-        return -1;
+        return file_list_empty;
 
     while (1) {
         if (lzx_read_entry(&e, f) < 0) {
 #ifdef LZX_DEBUG
-            debug("failed to read entry\n");
+            // debug("failed to read entry\n");
 #endif
-            return -1;
+            goto error;
         }
 
         if (lzx_check_entry(&lzx, &e, file_len) < 0) {
-            if (e.compressed_size && fseek(f, e.compressed_size, SEEK_CUR) < 0)
-                return -1;
+            if (e.compressed_size && buffer_seek(f, e.compressed_size) < 0)
+                goto error;
             continue;
         }
 
@@ -312,11 +390,11 @@ int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file
         /* Extract */
         in = (unsigned char*)malloc(e.compressed_size);
         if (in == NULL)
-            return -1;
+            goto error;
 
-        if (fread(in, 1, e.compressed_size, f) < e.compressed_size) {
+        if (buffer_read(in, 1, e.compressed_size, f) < e.compressed_size) {
             free(in);
-            return -1;
+            goto error;
         }
 
         if (e.method != LZX_M_UNPACKED) {
@@ -324,7 +402,7 @@ int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file
             out_len = lzx.merge_total_size;
             if (out == NULL) {
                 free(in);
-                return -1;
+                goto error;
             }
 
             err = lzx_unpack(out, out_len, in, e.compressed_size, e.method);
@@ -335,14 +413,22 @@ int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file
                 debug("unpack failed\n");
 #endif
                 free(out);
-                return -1;
+                goto error;
             }
+
+            // printf("file '%s'\n", e.filename);
+
         } else {
             out = in;
             out_len = e.compressed_size;
         }
 
+        FileEntry entry = {strdup(e.filename), out, out_len};
+
+        Filelist_push_entry(&file_list, entry);
+
         /* Select a file from a merge (if needed). */
+        /*
         if (lzx.selected_size < out_len) {
             unsigned char* t;
 #ifdef LZX_DEBUG
@@ -352,26 +438,35 @@ int lzx_read(unsigned char** dest, size_t* dest_len, FILE* f, unsigned long file
             if (lzx.selected_offset && lzx.selected_offset <= out_len - lzx.selected_size)
                 memmove(out, out + lzx.selected_offset, lzx.selected_size);
 
+            printf("mereg\n");
+
             out_len = lzx.selected_size;
             t = (unsigned char*)realloc(out, out_len);
             if (t != NULL)
                 out = t;
         }
+        */
 
         out_crc32 = lzx_crc32(0, out, out_len);
         if (out_crc32 != lzx.selected_crc32) {
+            // printf("failed crc32\n");
 #ifdef LZX_DEBUG
             debug("file CRC-32 mismatch (got 0x%08zx, expected 0x%08zx)\n", (size_t)out_crc32,
                   (size_t)lzx.selected_crc32);
 #endif
-            free(out);
-            return -1;
+            // free(out);
+            // goto error;
         }
 
-        *dest = out;
-        *dest_len = out_len;
-        return 0;
+        return file_list;
+
+        //*dest = out;
+        //*dest_len = out_len;
+        // return 0;
     }
+error:
+    lzx_free_entries(file_list);
+    return file_list_empty;
 }
 
 #if 0
@@ -437,31 +532,56 @@ int main(int argc, char *argv[])
 
 #endif
 
-int lzx_unpack_wrap(const char* filename, int start_pos, int end_pos) {
+Filelist lzx_unpack_wrap(unsigned char* buffer, int size) {
     unsigned char* out;
     size_t out_len;
 
+    /*
+    printf("here\n");
+
     FILE* fp = fopen(filename, "rb");
+    fseek(fp, 0, SEEK_END);
+    int size = (int)ftell(fp);
+    rewind(fp);
 
-    if (!fp) {
-        return -1;
-    }
+    unsigned char* buffer = malloc(size);
+    unsigned char* temp_buffer = malloc(size);
 
-    if (end_pos == 0) {
-        fseek(fp, 0, SEEK_END);
-        end_pos = (int)ftell(fp);
-        rewind(fp);
-    } else {
-        fseek(fp, start_pos, SEEK_SET);
-    }
-
-    if (lzx_read(&out, &out_len, fp, end_pos - start_pos) == 0) {
-        free(out);
-    } else {
-        return -1;
-    }
-
+    fread(temp_buffer, 1, size, fp);
     fclose(fp);
+    */
 
-    return 0;
+    // for (int i = 0; i < size - 3; ++i) {
+    //     char old[3] = {buffer[i + 0], buffer[i + 1], buffer[i + 2]};
+
+    /*
+    if ((i & 0x1024) == 0x1024) {
+        printf("here %d", i);
+    }
+    */
+
+    // printf("%d\n", i);
+
+    // printf("checking offset %d\n", i);
+
+    buffer[0] = 'L';
+    buffer[1] = 'Z';
+    buffer[2] = 'X';
+
+    FileBuffer fbuffer = {buffer, size};
+    Filelist list = lzx_read(&out, &out_len, &fbuffer, size);
+
+    return list;
+    /*
+    if (list.len > 0) {
+        printf("---------------------------------\n");
+        for (int i = 0; i < list.len; ++i) {
+            printf("    %s\n", list.entries[i].filename);
+        }
+    }
+    */
+
+    // buffer[i + 0] = old[0];
+    // buffer[i + 1] = old[1];
+    // buffer[i + 2] = old[2];
 }

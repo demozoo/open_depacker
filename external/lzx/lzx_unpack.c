@@ -75,7 +75,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* #define LZX_DEBUG */
+//#define LZX_DEBUG
 
 #define LZX_LOOKUP_BITS 12
 #define LZX_LOOKUP_MASK ((1 << LZX_LOOKUP_BITS) - 1)
@@ -571,13 +571,19 @@ int lzx_unpack(unsigned char* LZX_RESTRICT dest, size_t dest_len, const unsigned
     size_t bytes_out;
     size_t prev_distance = 1;
 
+    // printf(">>>>>>>>>>>>>>>>>> dest len %d src len %d\n", dest_len, src_len);
+
     /* Only one supported compression method. */
-    if (method != LZX_M_PACKED)
+    if (method != LZX_M_PACKED) {
+        // printf("compression method %d not supported\n", method);
         return -1;
+    }
 
     lzx = lzx_unpack_init();
-    if (!lzx)
+    if (!lzx) {
+        // printf("unpack init failed\n");
         return -1;
+    }
 
     while (lzx->out < dest_len) {
         unsigned block_type = lzx_get_bits(lzx, src, src_len, 3);
@@ -585,18 +591,30 @@ int lzx_unpack(unsigned char* LZX_RESTRICT dest, size_t dest_len, const unsigned
         debug("\nblock type:%u\n", block_type);
 #endif
 
-        if (block_type < LZX_B_VERBATIM_NO_TREE || block_type > LZX_B_ALIGNED)
+        if (block_type < LZX_B_VERBATIM_NO_TREE || block_type > LZX_B_ALIGNED) {
+#ifdef LZX_DEBUG
+            debug("alignment 2\n");
+#endif
             goto err;
+        }
 
         if (block_type == LZX_B_ALIGNED)
-            if (lzx_read_aligned(lzx, src, src_len) < 0)
+            if (lzx_read_aligned(lzx, src, src_len) < 0) {
+#ifdef LZX_DEBUG
+                debug("alignment 2\n");
+#endif
                 goto err;
+            }
 
         bytes_out = lzx_get_bits(lzx, src, src_len, 8) << 16;
         bytes_out |= lzx_get_bits(lzx, src, src_len, 8) << 8;
         bytes_out |= lzx_get_bits(lzx, src, src_len, 8);
-        if (lzx->eof || bytes_out > dest_len - lzx->out)
+        if (lzx->eof || bytes_out > dest_len - lzx->out) {
+#ifdef LZX_DEBUG
+            debug("eof\n");
+#endif
             goto err;
+        }
 
 #ifdef LZX_DEBUG
         debug("uncompr.size:%zu (%06zx)\n", bytes_out, bytes_out);
@@ -604,7 +622,10 @@ int lzx_unpack(unsigned char* LZX_RESTRICT dest, size_t dest_len, const unsigned
 
         if (block_type == LZX_B_VERBATIM || block_type == LZX_B_ALIGNED) {
             if (lzx_read_codes(lzx, src, src_len) < 0)
-                goto err;
+#ifdef LZX_DEBUG
+                debug("bad codes!\n");
+#endif
+            goto err;
         }
 
         while (bytes_out) {

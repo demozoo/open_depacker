@@ -1,35 +1,127 @@
+use cfixed_string::CFixedString;
 use clap::Parser;
+use core::slice;
+use delharc::LhaDecodeReader;
+use rayon::prelude::*;
+use std::ffi::CStr;
+use std::fs;
+use std::fs::File;
+use std::io::prelude::*;
+use std::io::SeekFrom;
+use std::os::raw::c_char;
+use std::{io, path::Path};
+use walkdir::WalkDir;
 
 /// Open Depacker
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// File to scan
+    /// File(s) to scan
     #[clap(short, long)]
     scan: String,
+
+    /// Target for extraction
+    #[clap(short, long)]
+    output_dir: String,
+
+    /// Do recurseive scanning (include sub-directories) when using --scan
+    #[clap(short, long)]
+    recursive: bool,
 }
 
-fn main() {}
-
-/*
-let matches = clap_app!(open_depacker =>
-    (version: "0.1")
-    (author: "Daniel Collin. <daniel@collin.com>")
-    (about: "Generic data depacker")
-    (@arg input: +required "Sets the input file to use")
-    (@arg debug: -d ... "Sets the level of debugging information")
-).get_matches();
-
-match matches.occurrences_of("debug") {
-    0 => println!("Debug mode is off"),
-    1 => println!("Debug mode is kind of on"),
-    2 => println!("Debug mode is on"),
-    3 | _ => println!("Don't be crazy"),
+#[repr(C)]
+struct CFileEntry {
+    filename: *const u8,
+    data: *const u8,
+    data_len: u32,
 }
 
-let amiga = Amiga::new();
-
-if let Some(ref file) = matches.value_of("input") {
-    amiga.load_executable_to_memory(file).unwrap();
+#[repr(C)]
+struct CFilelist {
+    entries: *const CFileEntry,
+    count: u32,
+    cap: u32,
 }
-*/
+
+extern "C" {
+    fn lzx_unpack_wrap(buffer: *mut u8, len: i32) -> CFilelist;
+    fn lzx_free_entries(list: CFilelist);
+}
+
+// Get files for a given directory
+fn get_files(path: &str, recurse: bool) -> Vec<String> {
+    if !Path::new(path).exists() {
+        println!(
+            "Path/File \"{}\" doesn't exist. No file(s) will be processed.",
+            path
+        );
+        return Vec::new();
+    }
+
+    // Check if "path" is a single file
+    let md = std::fs::metadata(path).unwrap();
+
+    if md.is_file() {
+        return vec![path.to_owned()];
+    }
+
+    let max_depth = if !recurse { 1 } else { usize::MAX };
+
+    let files: Vec<String> = WalkDir::new(path)
+        .max_depth(max_depth)
+        .into_iter()
+        .filter_map(|e| {
+            let file = e.unwrap();
+            let metadata = file.metadata().unwrap();
+
+            if let Some(filename) = file.path().to_str() {
+                if metadata.is_file() && !filename.ends_with(".listing") {
+                    return Some(filename.to_owned());
+                }
+            }
+            None
+        })
+        .collect();
+    files
+}
+
+unsafe fn process_file(filename: &str) {
+    let mut data = fs::read(filename).unwrap();
+
+    println!("Scaning file {}", filename);
+    let input_file = std::path::Path::new(&filename);
+    let input_file_dir = input_file.parent().unwrap();
+
+    for i in 0..data.len() - 3 {
+        let t = &mut data[i..];
+        let list = lzx_unpack_wrap(t.as_mut_ptr(), t.len() as _);
+
+        if list.count > 0 {
+            let entries = slice::from_raw_parts(list.entries, list.count as _);
+
+            for e in entries {
+                let filename = CStr::from_ptr(e.filename as _);
+                let p = filename.to_string_lossy().into_owned();
+                let path = std::path::Path::new(&p);
+                let full_path = input_file_dir.join(path);
+                let prefix = full_path.parent().unwrap();
+                std::fs::create_dir_all(prefix).unwrap();
+                println!("Writing file {:?}", full_path);
+                let mut f = File::create(full_path).unwrap();
+                let data = slice::from_raw_parts(e.data, e.data_len as _);
+                f.write_all(data).unwrap();
+            }
+
+            lzx_free_entries(list);
+        }
+    }
+}
+
+fn main() {
+    let args = Args::parse();
+    let files = get_files(&args.scan, args.recursive);
+
+    for file in files {
+        unsafe { process_file(&file) };
+    }
+}
