@@ -1,0 +1,26 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish_windows:
+    name: Publish binaries
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build code & Generate build
+      shell: cmd
+      run: |
+        cargo build --release && copy target\release\open_depacker.exe open_depacker.exe && tar.exe -a -c -f open_depacker.zip open_depacker.exe
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: open_depacker.zip
+        asset_name: open_depacker_$tag.zip
+        tag: ${{ github.ref }}
+        overwrite: true
