@@ -138,7 +138,7 @@ typedef struct FileBuffer {
     size_t size_left;
 } FileBuffer;
 
-size_t buffer_read(void* dest, size_t m, size_t size_, FileBuffer* f) {
+static size_t buffer_read(void* dest, size_t m, size_t size_, FileBuffer* f) {
     size_t size = m * size_;
 
     if (f->size_left == 0) {
@@ -158,7 +158,7 @@ size_t buffer_read(void* dest, size_t m, size_t size_, FileBuffer* f) {
     return size;
 }
 
-int buffer_seek(FileBuffer* f, size_t offset) {
+static int buffer_seek(FileBuffer* f, size_t offset) {
     if (offset > f->size_left) {
         return -1;
     } else {
@@ -175,8 +175,8 @@ static int lzx_read_header(struct lzx_data* lzx, FileBuffer* f) {
     if (buffer_read(buf, 1, LZX_HEADER_SIZE, f) < LZX_HEADER_SIZE)
         return -1;
 
-    if (memcmp(buf, "LZX", 3))
-        return -1;
+    // if (memcmp(buf, "LZX", 3))
+    //     return -1;
 
     memset(lzx, 0, sizeof(struct lzx_data));
     lzx->selected_offset = LZX_NO_SELECTION;
@@ -325,6 +325,7 @@ typedef struct Filelist {
     FileEntry* entries;
     int len;
     int capacity;
+    int seek_offset;
 } Filelist;
 
 void lzx_free_entries(Filelist list) {
@@ -336,7 +337,7 @@ void lzx_free_entries(Filelist list) {
 }
 
 Filelist Filelist_new(int cap) {
-    Filelist list = {malloc(cap * sizeof(FileEntry)), 0, cap};
+    Filelist list = {malloc(cap * sizeof(FileEntry)), 0, cap, 0};
     return list;
 }
 
@@ -424,7 +425,6 @@ Filelist lzx_read(FileBuffer* f, unsigned long file_len) {
         }
 
         /* Select a file from a merge (if needed). */
-        /*
         if (lzx.selected_size < out_len) {
             unsigned char* t;
 #ifdef LZX_DEBUG
@@ -434,14 +434,11 @@ Filelist lzx_read(FileBuffer* f, unsigned long file_len) {
             if (lzx.selected_offset && lzx.selected_offset <= out_len - lzx.selected_size)
                 memmove(out, out + lzx.selected_offset, lzx.selected_size);
 
-            printf("mereg\n");
-
             out_len = lzx.selected_size;
             t = (unsigned char*)realloc(out, out_len);
             if (t != NULL)
                 out = t;
         }
-        */
 
         out_crc32 = lzx_crc32(0, out, out_len);
         if (out_crc32 != lzx.selected_crc32) {
@@ -450,7 +447,8 @@ Filelist lzx_read(FileBuffer* f, unsigned long file_len) {
             debug("file CRC-32 mismatch (got 0x%08zx, expected 0x%08zx)\n", (size_t)out_crc32,
                   (size_t)lzx.selected_crc32);
 #endif
-            // continue;
+
+            continue;
             //  free(out);
             //  goto error;
         }
@@ -464,20 +462,33 @@ Filelist lzx_read(FileBuffer* f, unsigned long file_len) {
     }
 
 error:
+    if (file_list.len > 0) {
+        file_list.seek_offset = file_len - f->size_left;
+    }
+
     return file_list;
     // lzx_free_entries(file_list);
     // return file_list_empty;
 }
-
-#endif
 
 Filelist lzx_unpack_wrap(unsigned char* buffer, int size) {
     buffer[0] = 'L';
     buffer[1] = 'Z';
     buffer[2] = 'X';
 
-    FileBuffer fbuffer = {buffer, size};
-    Filelist list = lzx_read(&fbuffer, size);
+    Filelist max_files = {0};
+    printf("size left %d\n", size);
+    fflush(stdout);
 
-    return list;
+    for (int i = 3; i < size; ++i) {
+        FileBuffer fbuffer = {buffer, i};
+        Filelist list = lzx_read(&fbuffer, i);
+        if (list.len > max_files.len) {
+            max_files = list;
+        } else {
+            lzx_free_entries(list);
+        }
+    }
+
+    return max_files;
 }

@@ -35,6 +35,7 @@ struct CFilelist {
     entries: *const CFileEntry,
     count: u32,
     cap: u32,
+    seek_offset: u32,
 }
 
 extern "C" {
@@ -87,9 +88,11 @@ unsafe fn process_file(filename: &str) {
     let input_file_dir = input_file.parent().unwrap();
     let mut dir_entry = 0;
     let mut written_data = HashSet::new();
+    let mut read_offset = 0;
 
-    for i in 0..data.len() - 3 {
-        let t = &mut data[i..];
+    loop {
+        //for i in 0..data.len() - 3 {
+        let t = &mut data[read_offset..];
         let list = lzx_unpack_wrap(t.as_mut_ptr(), t.len() as _);
 
         if list.count > 0 {
@@ -105,6 +108,7 @@ unsafe fn process_file(filename: &str) {
                 let hash_str = format!("{:x}", hash);
 
                 if written_data.contains(&hash_str) {
+                    //println!("    Writing file {:?} - skipped (already written)", &p);
                     continue;
                 } else {
                     written_data.insert(hash_str);
@@ -124,7 +128,16 @@ unsafe fn process_file(filename: &str) {
                 dir_entry += 1;
             }
 
+            read_offset += 1;
+            //read_offset += list.seek_offset as usize;
+
             lzx_free_entries(list);
+        } else {
+            read_offset += 1;
+        }
+
+        if (read_offset + 3) > data.len() {
+            break;
         }
     }
 }
