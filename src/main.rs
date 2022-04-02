@@ -94,6 +94,7 @@ unsafe fn process_file(filename: &str) {
 
         if list.count > 0 {
             let entries = slice::from_raw_parts(list.entries, list.count as _);
+            let mut did_write_files = false;
 
             for e in entries {
                 let filename = CStr::from_ptr(e.filename as _);
@@ -107,6 +108,7 @@ unsafe fn process_file(filename: &str) {
                     continue;
                 } else {
                     written_data.insert(hash_str);
+                    did_write_files = true;
                 }
 
                 let path = std::path::Path::new(&p);
@@ -116,6 +118,9 @@ unsafe fn process_file(filename: &str) {
                 println!("Writing file {:?}", full_path);
                 let mut f = File::create(full_path).unwrap();
                 f.write_all(data).unwrap();
+            }
+
+            if did_write_files {
                 dir_entry += 1;
             }
 

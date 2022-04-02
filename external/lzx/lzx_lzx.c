@@ -458,15 +458,15 @@ Filelist lzx_read(unsigned char** dest, size_t* dest_len, FileBuffer* f, unsigne
             // goto error;
         }
 
-        return file_list;
-
         //*dest = out;
         //*dest_len = out_len;
         // return 0;
     }
+
 error:
-    lzx_free_entries(file_list);
-    return file_list_empty;
+    return file_list;
+    // lzx_free_entries(file_list);
+    // return file_list_empty;
 }
 
 #if 0
