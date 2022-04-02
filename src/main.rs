@@ -1,15 +1,13 @@
-use cfixed_string::CFixedString;
 use clap::Parser;
 use core::slice;
-use delharc::LhaDecodeReader;
-use rayon::prelude::*;
+// use rayon::prelude::*;
+use sha2::Digest;
+use std::collections::HashSet;
 use std::ffi::CStr;
 use std::fs;
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::SeekFrom;
-use std::os::raw::c_char;
-use std::{io, path::Path};
+use std::path::Path;
 use walkdir::WalkDir;
 
 /// Open Depacker
@@ -88,6 +86,7 @@ unsafe fn process_file(filename: &str) {
     let input_file = std::path::Path::new(&filename);
     let input_file_dir = input_file.parent().unwrap();
     let mut dir_entry = 0;
+    let mut written_data = HashSet::new();
 
     for i in 0..data.len() - 3 {
         let t = &mut data[i..];
@@ -99,13 +98,23 @@ unsafe fn process_file(filename: &str) {
             for e in entries {
                 let filename = CStr::from_ptr(e.filename as _);
                 let p = filename.to_string_lossy().into_owned();
+
+                let data = slice::from_raw_parts(e.data, e.data_len as _);
+                let hash = sha2::Sha256::digest(&data);
+                let hash_str = format!("{:x}", hash);
+
+                if written_data.contains(&hash_str) {
+                    continue;
+                } else {
+                    written_data.insert(hash_str);
+                }
+
                 let path = std::path::Path::new(&p);
                 let full_path = input_file_dir.join(&format!("{}/", dir_entry)).join(path);
                 let prefix = full_path.parent().unwrap();
                 std::fs::create_dir_all(prefix).unwrap();
                 println!("Writing file {:?}", full_path);
                 let mut f = File::create(full_path).unwrap();
-                let data = slice::from_raw_parts(e.data, e.data_len as _);
                 f.write_all(data).unwrap();
                 dir_entry += 1;
             }
