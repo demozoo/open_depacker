@@ -354,7 +354,7 @@ void Filelist_push_entry(Filelist* self, FileEntry entry) {
     self->len = len;
 }
 
-Filelist lzx_read(unsigned char** dest, size_t* dest_len, FileBuffer* f, unsigned long file_len) {
+Filelist lzx_read(FileBuffer* f, unsigned long file_len) {
     struct lzx_data lzx;
     struct lzx_entry e;
     unsigned char* out;
@@ -423,10 +423,6 @@ Filelist lzx_read(unsigned char** dest, size_t* dest_len, FileBuffer* f, unsigne
             out_len = e.compressed_size;
         }
 
-        FileEntry entry = {strdup(e.filename), out, out_len};
-
-        Filelist_push_entry(&file_list, entry);
-
         /* Select a file from a merge (if needed). */
         /*
         if (lzx.selected_size < out_len) {
@@ -454,9 +450,13 @@ Filelist lzx_read(unsigned char** dest, size_t* dest_len, FileBuffer* f, unsigne
             debug("file CRC-32 mismatch (got 0x%08zx, expected 0x%08zx)\n", (size_t)out_crc32,
                   (size_t)lzx.selected_crc32);
 #endif
-            // free(out);
-            // goto error;
+            // continue;
+            //  free(out);
+            //  goto error;
         }
+
+        FileEntry entry = {strdup(e.filename), out, out_len};
+        Filelist_push_entry(&file_list, entry);
 
         //*dest = out;
         //*dest_len = out_len;
@@ -469,119 +469,15 @@ error:
     // return file_list_empty;
 }
 
-#if 0
-
-#ifdef _WIN32
-#include <fcntl.h>
-#endif
-
-#ifdef LIBFUZZER_FRONTEND
-int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
-{
-  FILE *fp = fmemopen((void *)data, size, "rb");
-  if(fp)
-  {
-    unsigned char *out;
-    size_t out_len;
-
-    if(lzx_read(&out, &out_len, fp, size) == 0)
-      free(out);
-    fclose(fp);
-  }
-  return 0;
-}
-
-#define main _main
-static __attribute__((unused))
-#endif
-
-int main(int argc, char *argv[])
-{
-  FILE *f;
-  unsigned char *data;
-  size_t data_length;
-  unsigned long file_length;
-
-  if(argc < 2)
-    return -1;
-
-#ifdef _WIN32
-  /* Windows forces stdout to be text mode by default, fix it. */
-  _setmode(_fileno(stdout), _O_BINARY);
-#endif
-
-  f = fopen(argv[1], "rb");
-  if(!f)
-    return -1;
-
-  fseek(f, 0, SEEK_END);
-  file_length = ftell(f);
-  rewind(f);
-
-  if(lzx_read(&data, &data_length, f, file_length) < 0)
-    return -1;
-
-#ifdef LZX_DEBUG
-  debug("file decompressed successfully.\n");
-#endif
-
-  //fwrite(data, data_length, 1, stdout);
-  free(data);
-  return 0;
-}
-
 #endif
 
 Filelist lzx_unpack_wrap(unsigned char* buffer, int size) {
-    unsigned char* out;
-    size_t out_len;
-
-    /*
-    printf("here\n");
-
-    FILE* fp = fopen(filename, "rb");
-    fseek(fp, 0, SEEK_END);
-    int size = (int)ftell(fp);
-    rewind(fp);
-
-    unsigned char* buffer = malloc(size);
-    unsigned char* temp_buffer = malloc(size);
-
-    fread(temp_buffer, 1, size, fp);
-    fclose(fp);
-    */
-
-    // for (int i = 0; i < size - 3; ++i) {
-    //     char old[3] = {buffer[i + 0], buffer[i + 1], buffer[i + 2]};
-
-    /*
-    if ((i & 0x1024) == 0x1024) {
-        printf("here %d", i);
-    }
-    */
-
-    // printf("%d\n", i);
-
-    // printf("checking offset %d\n", i);
-
     buffer[0] = 'L';
     buffer[1] = 'Z';
     buffer[2] = 'X';
 
     FileBuffer fbuffer = {buffer, size};
-    Filelist list = lzx_read(&out, &out_len, &fbuffer, size);
+    Filelist list = lzx_read(&fbuffer, size);
 
     return list;
-    /*
-    if (list.len > 0) {
-        printf("---------------------------------\n");
-        for (int i = 0; i < list.len; ++i) {
-            printf("    %s\n", list.entries[i].filename);
-        }
-    }
-    */
-
-    // buffer[i + 0] = old[0];
-    // buffer[i + 1] = old[1];
-    // buffer[i + 2] = old[2];
 }
