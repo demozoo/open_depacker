@@ -1,6 +1,6 @@
 [package]
 name = "open_depacker"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Daniel Collin <daniel@collin.com>"]
 edition = "2021"
 

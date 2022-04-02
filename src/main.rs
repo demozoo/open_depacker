@@ -87,6 +87,7 @@ unsafe fn process_file(filename: &str) {
     println!("Scaning file {}", filename);
     let input_file = std::path::Path::new(&filename);
     let input_file_dir = input_file.parent().unwrap();
+    let mut dir_entry = 0;
 
     for i in 0..data.len() - 3 {
         let t = &mut data[i..];
@@ -99,13 +100,14 @@ unsafe fn process_file(filename: &str) {
                 let filename = CStr::from_ptr(e.filename as _);
                 let p = filename.to_string_lossy().into_owned();
                 let path = std::path::Path::new(&p);
-                let full_path = input_file_dir.join(path);
+                let full_path = input_file_dir.join(&format!("{}/", dir_entry)).join(path);
                 let prefix = full_path.parent().unwrap();
                 std::fs::create_dir_all(prefix).unwrap();
                 println!("Writing file {:?}", full_path);
                 let mut f = File::create(full_path).unwrap();
                 let data = slice::from_raw_parts(e.data, e.data_len as _);
                 f.write_all(data).unwrap();
+                dir_entry += 1;
             }
 
             lzx_free_entries(list);
