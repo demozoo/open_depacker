@@ -477,10 +477,16 @@ Filelist lzx_unpack_wrap(unsigned char* buffer, int size) {
     buffer[2] = 'X';
 
     Filelist max_files = {0};
-    printf("size left %d\n", size);
-    fflush(stdout);
+#if 1
+    FileBuffer fbuffer = {buffer, size};
+    Filelist list = lzx_read(&fbuffer, size);
+    return list;
+#else
+    // printf("size left %d\n", size);
+    // fflush(stdout);
 
     for (int i = 3; i < size; ++i) {
+        // printf("%d\n", i);
         FileBuffer fbuffer = {buffer, i};
         Filelist list = lzx_read(&fbuffer, i);
         if (list.len > max_files.len) {
@@ -490,5 +496,10 @@ Filelist lzx_unpack_wrap(unsigned char* buffer, int size) {
         }
     }
 
+    if (max_files.len > 0) {
+        printf("found filens!\n");
+    }
+
     return max_files;
+#endif
 }
